@@ -9,69 +9,76 @@
 import SwiftUI
 
 private let dateFormatter: DateFormatter = {
-    let dateFormatter = DateFormatter()
-    dateFormatter.dateStyle = .medium
-    dateFormatter.timeStyle = .medium
-    return dateFormatter
+  let dateFormatter = DateFormatter()
+  dateFormatter.dateStyle = .medium
+  dateFormatter.timeStyle = .medium
+  return dateFormatter
 }()
 
-struct ContentView: View {
-    @State private var dates = [Date]()
-
-    var body: some View {
-        NavigationView {
-            MasterView(dates: $dates)
-                .navigationBarTitle(Text("Master"))
-                .navigationBarItems(
-                    leading: EditButton(),
-                    trailing: Button(
-                        action: {
-                            withAnimation { self.dates.insert(Date(), at: 0) }
-                        }
-                    ) {
-                        Image(systemName: "plus")
-                    }
-                )
-            DetailView()
-        }.navigationViewStyle(DoubleColumnNavigationViewStyle())
-    }
+enum InstrumentType: String {
+  case stringed
+  case wind
 }
 
-struct MasterView: View {
-    @Binding var dates: [Date]
-
-    var body: some View {
-        List {
-            ForEach(dates, id: \.self) { date in
-                NavigationLink(
-                    destination: DetailView(selectedDate: date)
-                ) {
-                    Text("\(date, formatter: dateFormatter)")
-                }
-            }.onDelete { indices in
-                indices.forEach { self.dates.remove(at: $0) }
-            }
+struct ContentView: View {
+  @EnvironmentObject var instruments: Instruments
+  @EnvironmentObject var nav: Navigation
+  
+  var body: some View {
+    NavigationView {
+      List {
+        NavigationLink(
+          destination: InstrumentList(instruments: self.$instruments.stringedInstruments),
+          tag: .stringed,
+          selection: self.$nav.selectedInstrumentType
+        ) {
+          Text("String Section")
         }
+        NavigationLink(
+          destination: InstrumentList(instruments: self.$instruments.windInstruments),
+          tag: .wind,
+          selection: self.$nav.selectedInstrumentType
+        ) {
+          Text("Wind Section")
+        }
+      }
+      DetailView()
+    }.navigationViewStyle(DoubleColumnNavigationViewStyle())
+  }
+}
+
+struct InstrumentList: View {
+  @EnvironmentObject var nav: Navigation
+  
+  @Binding var instruments: [Instrument]
+  
+  var body: some View {
+    List {
+      ForEach(instruments, id: \.id) { instrument in
+        NavigationLink(
+          destination: DetailView(instrument: instrument),
+          tag: instrument.id,
+          selection: self.$nav.selectedInstrument
+        ) {
+          Text(instrument.label)
+        }
+      }
     }
+  }
 }
 
 struct DetailView: View {
-    var selectedDate: Date?
-
-    var body: some View {
-        Group {
-            if selectedDate != nil {
-                Text("\(selectedDate!, formatter: dateFormatter)")
-            } else {
-                Text("Detail view content goes here")
-            }
-        }.navigationBarTitle(Text("Detail"))
-    }
+  var instrument: Instrument?
+  
+  var body: some View {
+    Text(instrument?.label ?? "")
+      .navigationBarTitle(Text("Detail"))
+  }
 }
 
 
 struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-    }
+  static var previews: some View {
+    ContentView()
+  }
 }
